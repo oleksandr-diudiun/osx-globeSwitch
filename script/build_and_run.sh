@@ -25,7 +25,11 @@ cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_CONTENTS/Info.plist"
 cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_RESOURCES/AppIcon.icns"
 chmod +x "$APP_BINARY"
-codesign --force --sign - "$APP_BUNDLE"
+codesign \
+  --force \
+  --sign - \
+  --requirements '=designated => identifier "com.alexd.sound.GlobeSwitch"' \
+  "$APP_BUNDLE"
 
 open_app() {
   /usr/bin/open -n "$APP_BUNDLE"

@@ -48,6 +48,7 @@ codesign \
   --sign - \
   --options runtime \
   --timestamp=none \
+  --requirements '=designated => identifier "com.alexd.sound.GlobeSwitch"' \
   "$APP_BUNDLE"
 
 plutil -lint "$APP_CONTENTS/Info.plist"

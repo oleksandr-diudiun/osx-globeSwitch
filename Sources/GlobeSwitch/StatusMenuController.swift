@@ -49,9 +49,6 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         addDisabled("Current: \(controller.currentSource?.name ?? "Unknown")")
         addDisabled(monitorDescription)
         addDisabled(
-            "Accessibility: \(controller.hasAccessibilityPermission ? "Granted" : "Required")"
-        )
-        addDisabled(
             "Input Monitoring: \(controller.hasInputMonitoringPermission ? "Granted" : "Required")"
         )
         if let milliseconds = controller.lastSwitchMilliseconds {
@@ -138,7 +135,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
         return switch controller.monitorState {
         case .stopped: "Globe monitor: Stopped"
-        case .permissionRequired: "Globe monitor: Keyboard access required"
+        case .permissionRequired: "Globe monitor: Input Monitoring required"
         case .active: "Globe monitor: Active (switch on key-down)"
         case .failed(let message): "Globe monitor: \(message)"
         }

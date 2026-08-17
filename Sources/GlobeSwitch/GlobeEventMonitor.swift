@@ -1,9 +1,6 @@
 import ApplicationServices
-import AppKit
 import Foundation
 import GlobeSwitchCore
-
-private let systemDefinedEventType = CGEventType(rawValue: 14)!
 
 enum EventMonitorState: Equatable, Sendable {
     case stopped
@@ -36,30 +33,26 @@ final class GlobeEventMonitor {
     func start() {
         guard eventTap == nil else { return }
 
-        let accessibilityGranted = AXIsProcessTrusted()
         let inputMonitoringGranted = CGPreflightListenEventAccess()
-        let permissionSnapshot =
-            "accessibility=\(accessibilityGranted), inputMonitoring=\(inputMonitoringGranted)"
+        let permissionSnapshot = "inputMonitoring=\(inputMonitoringGranted)"
         if permissionSnapshot != lastPermissionSnapshot {
             DiagnosticsLogger.shared.log("Starting Globe monitor; \(permissionSnapshot)")
             lastPermissionSnapshot = permissionSnapshot
         }
 
-        let mask =
-            (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
-            (CGEventMask(1) << systemDefinedEventType.rawValue)
+        let mask = CGEventMask(1) << CGEventType.flagsChanged.rawValue
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
-            options: .defaultTap,
+            options: .listenOnly,
             eventsOfInterest: mask,
             callback: globeEventTapCallback,
             userInfo: userInfo
         ) else {
             if !didLogTapCreationFailure {
                 DiagnosticsLogger.shared.log(
-                    "Globe event tap creation failed; keyboard access is required",
+                    "Globe event tap creation failed; Input Monitoring is required",
                     level: .error
                 )
                 didLogTapCreationFailure = true
@@ -112,45 +105,22 @@ final class GlobeEventMonitor {
             return Unmanaged.passUnretained(event)
         }
 
-        if type == systemDefinedEventType {
-            let nsEvent = NSEvent(cgEvent: event)
-            let subtype = nsEvent?.subtype.rawValue ?? -1
-            let data1 = nsEvent?.data1 ?? 0
-            let data2 = nsEvent?.data2 ?? 0
-            logAfterEventReturns(
-                "System-defined key candidate: subtype=\(subtype), data1=\(data1), data2=\(data2)"
-            )
-            return Unmanaged.passUnretained(event)
-        }
-
         guard type == .flagsChanged else {
             return Unmanaged.passUnretained(event)
         }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let isDown = event.flags.contains(.maskSecondaryFn)
-        if keyCode == 63 || isDown {
-            logAfterEventReturns(
-                "Fn/Globe candidate: type=flagsChanged, keyCode=\(keyCode), " +
-                "secondaryFn=\(isDown), rawFlags=\(event.flags.rawValue)"
-            )
-        }
         guard keyCode == 63 else {
             return Unmanaged.passUnretained(event)
         }
 
         if pressState.update(isDown: isDown) {
-            // This callback is an active tap. Selecting the source before returning
-            // keeps the next key event ordered after the language change.
+            // Select the source directly on Globe/Fn key-down, without a shortcut
+            // synthesis or an intentional delay.
             onPress()
         }
         return Unmanaged.passUnretained(event)
-    }
-
-    private func logAfterEventReturns(_ message: String) {
-        DispatchQueue.main.async {
-            DiagnosticsLogger.shared.log(message)
-        }
     }
 }
 

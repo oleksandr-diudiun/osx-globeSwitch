@@ -40,7 +40,7 @@ macOS 10.5 and does not mark them deprecated.
 
 ## Chosen design
 
-`GlobeSwitch` installs an active session event tap for `flagsChanged`, recognizes
+`GlobeSwitch` installs a listen-only session event tap for `flagsChanged`, recognizes
 virtual key code 63 with the secondary-Fn flag, and calls `TISSelectInputSource`
 synchronously on the transition to key-down. The callback passes the original
 event through after the selection call.
@@ -60,9 +60,9 @@ the native Globe handler and GlobeSwitch both process the same press. Apple list
 Do Nothing as a supported Globe/Fn action; the private preference value is only
 used for detection, not silently changed by GlobeSwitch.
 
-The active event tap requires macOS keyboard-event permission. The app requests
-the relevant system access and retries event-tap creation after permission is
-granted.
+The listen-only event tap requires Input Monitoring, but not Accessibility. The
+app requests the relevant system access and retries event-tap creation after
+permission is granted.
 
 ## Alternatives considered
 
@@ -89,7 +89,9 @@ granted.
 - Apple Silicon release app and DMG: built successfully; the bundle passed strict
   code-signature, identifier, architecture and Info.plist validation, and the DMG
   passed `hdiutil verify`.
-- Real physical Globe press with permission granted: pending user test.
+- Real physical Globe press with permission granted: passed. Rapid presses emitted
+  consistent `flagsChanged` down/up pairs with virtual key code 63 and the
+  secondary-Fn flag; the user confirmed direct switching works well.
 
 ## Primary references
 

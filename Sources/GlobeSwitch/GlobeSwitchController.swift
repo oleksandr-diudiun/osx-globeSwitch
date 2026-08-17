@@ -36,11 +36,7 @@ final class GlobeSwitchController: ObservableObject {
     }
 
     var hasKeyboardPermission: Bool {
-        AXIsProcessTrusted() || CGPreflightListenEventAccess()
-    }
-
-    var hasAccessibilityPermission: Bool {
-        AXIsProcessTrusted()
+        CGPreflightListenEventAccess()
     }
 
     var hasInputMonitoringPermission: Bool {
@@ -50,6 +46,10 @@ final class GlobeSwitchController: ObservableObject {
     func start() {
         DiagnosticsLogger.shared.log("GlobeSwitch launched")
         registerForInputSourceChanges()
+        if !CGPreflightListenEventAccess() {
+            DiagnosticsLogger.shared.log("Input Monitoring is not granted; requesting access")
+            _ = CGRequestListenEventAccess()
+        }
         eventMonitor.start()
         startPermissionRetryTimerIfNeeded()
     }
@@ -67,8 +67,6 @@ final class GlobeSwitchController: ObservableObject {
     func requestKeyboardPermission() {
         DiagnosticsLogger.shared.log("Requesting keyboard access")
         _ = CGRequestListenEventAccess()
-        let promptKey = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
-        _ = AXIsProcessTrustedWithOptions([promptKey: true] as CFDictionary)
         startPermissionRetryTimerIfNeeded()
     }
 

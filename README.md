@@ -5,7 +5,7 @@ GlobeSwitch is a personal native macOS menu-bar app that switches directly betwe
 - `com.apple.keylayout.ABC` (`EN`)
 - `com.apple.keylayout.Ukrainian-PC` (`UA`)
 
-It uses an active Core Graphics event tap and calls Apple's Text Input Sources API
+It uses a listen-only Core Graphics event tap and calls Apple's Text Input Sources API
 synchronously on the **Globe/Fn key-down** event. There is no language HUD, animation,
 mouse interaction, synthetic keyboard shortcut, shell process, or intentional delay.
 
@@ -15,6 +15,8 @@ mouse interaction, synthetic keyboard shortcut, shell process, or intentional de
 2. Set **Press Globe key to** to **Do Nothing**.
 3. Launch GlobeSwitch and choose **Request Keyboard Access…** from its menu-bar menu.
 4. Enable the app in the privacy pane macOS opens, then relaunch it if required.
+
+Only **Input Monitoring** is required. Accessibility is not needed.
 
 The system setting is important: leaving it on **Change Input Source** makes the native
 handler and GlobeSwitch both react to the same key.
@@ -71,7 +73,7 @@ are recorded in [`INVESTIGATION_2026-08-17.md`](INVESTIGATION_2026-08-17.md).
 
 ## Permissions and local signing
 
-The app needs macOS keyboard-event permission for its active event tap. The local
+The app needs Input Monitoring permission for its listen-only event tap. The local
 bundle is ad-hoc signed because this Mac currently has no Developer ID or Apple
-Development code-signing identity. Rebuilding can therefore require granting the
-permission again. A stable personal signing identity is the durable fix for updates.
+Development code-signing identity. Its explicit designated requirement is stable
+across local builds so macOS can retain the permission for this bundle identifier.
