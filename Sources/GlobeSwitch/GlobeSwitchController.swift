@@ -2,6 +2,7 @@
 import Carbon
 import Combine
 import Foundation
+import GlobeSwitchCore
 
 @MainActor
 final class GlobeSwitchController: ObservableObject {
@@ -11,15 +12,29 @@ final class GlobeSwitchController: ObservableObject {
     @Published private(set) var errorText: String?
     @Published private(set) var switchCount = 0
     @Published private(set) var isPaused = false
+    @Published private(set) var availableSources: [InputSourceSummary] = []
+    @Published private(set) var selectedSourceIDs: [String] = []
 
     let launchAgentManager = LaunchAgentManager()
 
     private let inputSources = InputSourceController()
+    private let defaults = UserDefaults.standard
     private var eventMonitor: GlobeEventMonitor!
     private var permissionRetryTask: Task<Void, Never>?
     private var sourceObserver: NSObjectProtocol?
 
+    private static let selectedSourceIDsKey = "selectedInputSourceIDs"
+
     init() {
+        availableSources = inputSources.availableSources
+        let preferredIDs = defaults.stringArray(forKey: Self.selectedSourceIDsKey)
+        selectedSourceIDs = InputSourceSelection.reconcile(
+            availableIDs: availableSources.map(\.id),
+            preferredIDs: preferredIDs
+        )
+        if preferredIDs != nil, preferredIDs != selectedSourceIDs {
+            defaults.set(selectedSourceIDs, forKey: Self.selectedSourceIDsKey)
+        }
         currentSource = inputSources.currentSource()
         eventMonitor = GlobeEventMonitor(
             onPress: { [weak self] in self?.switchImmediately() },
@@ -45,6 +60,13 @@ final class GlobeSwitchController: ObservableObject {
 
     func start() {
         DiagnosticsLogger.shared.log("GlobeSwitch launched")
+        let availableDescription = availableSources
+            .map { "\($0.name) [\($0.id)]" }
+            .joined(separator: ", ")
+        DiagnosticsLogger.shared.log("Available input sources: \(availableDescription)")
+        DiagnosticsLogger.shared.log(
+            "Selected Globe cycle: \(selectedSourceIDs.joined(separator: ", "))"
+        )
         registerForInputSourceChanges()
         if !CGPreflightListenEventAccess() {
             DiagnosticsLogger.shared.log("Input Monitoring is not granted; requesting access")
@@ -76,6 +98,15 @@ final class GlobeSwitchController: ObservableObject {
 
     func refresh() {
         inputSources.reload()
+        availableSources = inputSources.availableSources
+        let reconciled = InputSourceSelection.reconcile(
+            availableIDs: availableSources.map(\.id),
+            preferredIDs: selectedSourceIDs
+        )
+        if reconciled != selectedSourceIDs {
+            selectedSourceIDs = reconciled
+            defaults.set(selectedSourceIDs, forKey: Self.selectedSourceIDsKey)
+        }
         currentSource = inputSources.currentSource()
         if !isPaused, !eventMonitor.isActive {
             eventMonitor.retry()
@@ -94,9 +125,39 @@ final class GlobeSwitchController: ObservableObject {
         }
     }
 
+    func toggleSourceSelection(id: String) {
+        guard availableSources.contains(where: { $0.id == id }) else {
+            errorText = "This input source is no longer enabled in macOS."
+            refresh()
+            return
+        }
+
+        var selected = Set(selectedSourceIDs)
+        if selected.contains(id) {
+            guard selected.count > 2 else {
+                errorText = "Keep at least two input sources in the Globe cycle."
+                return
+            }
+            selected.remove(id)
+        } else {
+            selected.insert(id)
+        }
+
+        selectedSourceIDs = availableSources.map(\.id).filter(selected.contains)
+        defaults.set(selectedSourceIDs, forKey: Self.selectedSourceIDsKey)
+        errorText = nil
+        DiagnosticsLogger.shared.log(
+            "Updated Globe cycle: \(selectedSourceIDs.joined(separator: ", "))"
+        )
+    }
+
+    func isSourceSelected(id: String) -> Bool {
+        selectedSourceIDs.contains(id)
+    }
+
     private func switchImmediately() {
         do {
-            let measurement = try inputSources.toggle()
+            let measurement = try inputSources.toggle(selectedIDs: selectedSourceIDs)
             // Keep the event callback hot: UI and diagnostics work is deferred
             // until after this input event returns to the system.
             DispatchQueue.main.async { [weak self] in

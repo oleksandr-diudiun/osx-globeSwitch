@@ -42,8 +42,10 @@ macOS 10.5 and does not mark them deprecated.
 
 `GlobeSwitch` installs a listen-only session event tap for `flagsChanged`, recognizes
 virtual key code 63 with the secondary-Fn flag, and calls `TISSelectInputSource`
-synchronously on the transition to key-down. The callback passes the original
-event through after the selection call.
+synchronously on the transition to key-down. Version 0.2.0 discovers enabled,
+select-capable keyboard input sources and cycles through the subset checked in the
+menu. The selection persists across launches and uses the order returned by macOS.
+The callback passes the original event through after the selection call.
 
 Switching on key-down is intentional. Waiting for key-up would preserve every Fn
 chord but would reintroduce a race when the next letter overlaps the Globe release.
@@ -82,7 +84,7 @@ permission is granted.
 
 - Direct input-source benchmark: passed.
 - Swift 6 build: passed.
-- Core state tests: 2 passed.
+- Core state tests: 6 passed.
 - App-bundle build, ad-hoc signing, launch and process verification: passed for the
   first build.
 - Final source after adding Pause/Resume: builds and tests successfully.
@@ -92,6 +94,11 @@ permission is granted.
 - Real physical Globe press with permission granted: passed. Rapid presses emitted
   consistent `flagsChanged` down/up pairs with virtual key code 63 and the
   secondary-Fn flag; the user confirmed direct switching works well.
+- Version 0.2.0 installed over 0.1.0 without losing Input Monitoring. On this Mac
+  it discovered Ukrainian-PC and ABC, selected both by default, and activated the
+  event tap. Three-source advance, wrap, unavailable-source recovery, and selection
+  reconciliation are covered by core tests; a physical three-language Mac remains
+  an external installation test.
 
 ## Primary references
 

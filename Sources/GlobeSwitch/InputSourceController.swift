@@ -14,14 +14,17 @@ struct SwitchMeasurement: Sendable {
 }
 
 enum InputSourceError: LocalizedError {
-    case requiredSourcesUnavailable([String])
+    case insufficientSelectedSources
+    case selectedSourceUnavailable(String)
     case currentSourceUnavailable
     case selectionFailed(OSStatus)
 
     var errorDescription: String? {
         switch self {
-        case .requiredSourcesUnavailable(let ids):
-            "Required input sources are unavailable: \(ids.joined(separator: ", "))"
+        case .insufficientSelectedSources:
+            "Select at least two input sources for the Globe cycle."
+        case .selectedSourceUnavailable(let id):
+            "The selected input source is no longer available: \(id)"
         case .currentSourceUnavailable:
             "The current keyboard input source could not be read."
         case .selectionFailed(let status):
@@ -31,12 +34,8 @@ enum InputSourceError: LocalizedError {
 }
 
 final class InputSourceController {
-    static let pair = InputSourcePair(
-        firstID: "com.apple.keylayout.ABC",
-        secondID: "com.apple.keylayout.Ukrainian-PC"
-    )
-
     private var sourcesByID: [String: TISInputSource] = [:]
+    private(set) var availableSources: [InputSourceSummary] = []
 
     init() {
         reload()
@@ -52,15 +51,22 @@ final class InputSourceController {
         guard let unmanaged = TISCreateInputSourceList(filter as CFDictionary, false),
               let sources = unmanaged.takeRetainedValue() as? [TISInputSource] else {
             sourcesByID = [:]
+            availableSources = []
             return
         }
 
         var refreshed: [String: TISInputSource] = [:]
+        var summaries: [InputSourceSummary] = []
         for source in sources {
             guard let id = stringProperty(source, kTISPropertyInputSourceID) else { continue }
+            guard refreshed[id] == nil else { continue }
             refreshed[id] = source
+            if let summary = summary(for: source) {
+                summaries.append(summary)
+            }
         }
         sourcesByID = refreshed
+        availableSources = summaries
     }
 
     func currentSource() -> InputSourceSummary? {
@@ -68,23 +74,24 @@ final class InputSourceController {
         return summary(for: source)
     }
 
-    func toggle() throws -> SwitchMeasurement {
-        let requiredIDs = [Self.pair.firstID, Self.pair.secondID]
-        let missing = requiredIDs.filter { sourcesByID[$0] == nil }
-        if !missing.isEmpty {
+    func toggle(selectedIDs: [String]) throws -> SwitchMeasurement {
+        var cycleIDs = selectedIDs.filter { sourcesByID[$0] != nil }
+        if cycleIDs.count < 2 {
             reload()
-            let stillMissing = requiredIDs.filter { sourcesByID[$0] == nil }
-            if !stillMissing.isEmpty {
-                throw InputSourceError.requiredSourcesUnavailable(stillMissing)
-            }
+            cycleIDs = selectedIDs.filter { sourcesByID[$0] != nil }
+        }
+        guard cycleIDs.count >= 2 else {
+            throw InputSourceError.insufficientSelectedSources
         }
 
         guard let current = currentSource() else {
             throw InputSourceError.currentSourceUnavailable
         }
-        let nextID = Self.pair.nextID(currentID: current.id)
+        guard let nextID = InputSourceCycle(sourceIDs: cycleIDs).nextID(currentID: current.id) else {
+            throw InputSourceError.insufficientSelectedSources
+        }
         guard let next = sourcesByID[nextID] else {
-            throw InputSourceError.requiredSourcesUnavailable([nextID])
+            throw InputSourceError.selectedSourceUnavailable(nextID)
         }
 
         let start = DispatchTime.now().uptimeNanoseconds
@@ -106,17 +113,33 @@ final class InputSourceController {
     private func summary(for source: TISInputSource) -> InputSourceSummary? {
         guard let id = stringProperty(source, kTISPropertyInputSourceID) else { return nil }
         let name = stringProperty(source, kTISPropertyLocalizedName) ?? id
-        let abbreviation: String
-        switch id {
-        case Self.pair.firstID: abbreviation = "EN"
-        case Self.pair.secondID: abbreviation = "UA"
-        default: abbreviation = "?"
-        }
+        let abbreviation = abbreviation(for: source, name: name)
         return InputSourceSummary(id: id, name: name, abbreviation: abbreviation)
+    }
+
+    private func abbreviation(for source: TISInputSource, name: String) -> String {
+        if let language = stringArrayProperty(source, kTISPropertyInputSourceLanguages)?.first {
+            let code = language
+                .split(whereSeparator: { $0 == "-" || $0 == "_" })
+                .first
+                .map(String.init)?
+                .lowercased()
+            if code == "uk" { return "UA" }
+            if let code, !code.isEmpty { return String(code.prefix(2)).uppercased() }
+        }
+
+        let letters = name.unicodeScalars.filter(CharacterSet.letters.contains)
+        let fallback = String(String.UnicodeScalarView(letters.prefix(2))).uppercased()
+        return fallback.isEmpty ? "?" : fallback
     }
 
     private func stringProperty(_ source: TISInputSource, _ key: CFString) -> String? {
         guard let raw = TISGetInputSourceProperty(source, key) else { return nil }
         return Unmanaged<AnyObject>.fromOpaque(raw).takeUnretainedValue() as? String
+    }
+
+    private func stringArrayProperty(_ source: TISInputSource, _ key: CFString) -> [String]? {
+        guard let raw = TISGetInputSourceProperty(source, key) else { return nil }
+        return Unmanaged<AnyObject>.fromOpaque(raw).takeUnretainedValue() as? [String]
     }
 }

@@ -63,6 +63,8 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
 
         menu.addItem(.separator())
+        addSourceSelectionMenu()
+        menu.addItem(.separator())
 
         let pause = NSMenuItem(
             title: controller.isPaused ? "Resume Globe Switching" : "Pause Globe Switching",
@@ -98,7 +100,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         }
 
         let test = NSMenuItem(
-            title: "Test ABC ↔ Ukrainian",
+            title: "Test Next Input Source",
             action: #selector(testSwitch),
             keyEquivalent: ""
         )
@@ -127,6 +129,40 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let quit = NSMenuItem(title: "Quit GlobeSwitch", action: #selector(quitApp), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
+    }
+
+    private func addSourceSelectionMenu() {
+        let parent = NSMenuItem(
+            title: "Input Sources in Globe Cycle",
+            action: nil,
+            keyEquivalent: ""
+        )
+        let sourceMenu = NSMenu(title: "Input Sources in Globe Cycle")
+
+        if controller.availableSources.isEmpty {
+            let empty = NSMenuItem(
+                title: "No enabled input sources found",
+                action: nil,
+                keyEquivalent: ""
+            )
+            empty.isEnabled = false
+            sourceMenu.addItem(empty)
+        } else {
+            for source in controller.availableSources {
+                let item = NSMenuItem(
+                    title: "\(source.abbreviation) — \(source.name)",
+                    action: #selector(toggleSourceSelection(_:)),
+                    keyEquivalent: ""
+                )
+                item.target = self
+                item.representedObject = source.id
+                item.state = controller.isSourceSelected(id: source.id) ? .on : .off
+                sourceMenu.addItem(item)
+            }
+        }
+
+        parent.submenu = sourceMenu
+        menu.addItem(parent)
     }
 
     private var monitorDescription: String {
@@ -160,6 +196,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
     @objc private func testSwitch() {
         controller.testSwitch()
+    }
+
+    @objc private func toggleSourceSelection(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        controller.toggleSourceSelection(id: id)
+        rebuildMenu()
     }
 
     @objc private func openKeyboardSettings() {

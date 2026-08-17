@@ -13,9 +13,39 @@ import Testing
     #expect(secondDown)
 }
 
-@Test func pairAlternatesBothDirections() {
-    let pair = InputSourcePair(firstID: "ABC", secondID: "UA")
-    #expect(pair.nextID(currentID: "ABC") == "UA")
-    #expect(pair.nextID(currentID: "UA") == "ABC")
-    #expect(pair.nextID(currentID: nil) == "ABC")
+@Test func cycleAdvancesAndWrapsAcrossThreeSources() {
+    let cycle = InputSourceCycle(sourceIDs: ["EN", "UA", "DE"])
+    #expect(cycle.nextID(currentID: "EN") == "UA")
+    #expect(cycle.nextID(currentID: "UA") == "DE")
+    #expect(cycle.nextID(currentID: "DE") == "EN")
+    #expect(cycle.nextID(currentID: "FR") == "EN")
+    #expect(cycle.nextID(currentID: nil) == "EN")
+}
+
+@Test func emptyCycleHasNoNextSource() {
+    #expect(InputSourceCycle(sourceIDs: []).nextID(currentID: nil) == nil)
+}
+
+@Test func selectionUsesAvailableOrderAndDropsUnavailableSources() {
+    let reconciled = InputSourceSelection.reconcile(
+        availableIDs: ["EN", "UA", "DE"],
+        preferredIDs: ["DE", "EN", "MISSING"]
+    )
+    #expect(reconciled == ["EN", "DE"])
+}
+
+@Test func selectionFallsBackToAllAvailableWhenFewerThanTwoRemain() {
+    let reconciled = InputSourceSelection.reconcile(
+        availableIDs: ["EN", "UA", "DE"],
+        preferredIDs: ["MISSING", "UA"]
+    )
+    #expect(reconciled == ["EN", "UA", "DE"])
+}
+
+@Test func selectionKeepsTheOnlyAvailableSourceVisible() {
+    let reconciled = InputSourceSelection.reconcile(
+        availableIDs: ["EN"],
+        preferredIDs: ["MISSING"]
+    )
+    #expect(reconciled == ["EN"])
 }

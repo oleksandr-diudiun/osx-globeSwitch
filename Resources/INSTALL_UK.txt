@@ -14,10 +14,9 @@ GlobeSwitch — встановлення на macOS
    Якщо Open не допоміг, відкрийте System Settings → Privacy & Security,
    знайдіть повідомлення про GlobeSwitch і виберіть Open Anyway.
 
-3. У System Settings → Keyboard → Text Input → Edit… переконайтеся, що додані
-   обидві розкладки:
-   - ABC;
-   - Ukrainian – PC.
+3. У System Settings → Keyboard → Text Input → Edit… додайте щонайменше дві
+   потрібні розкладки або системні джерела введення. Підтримуються також
+   регіональні варіанти, наприклад British English.
 
 4. У System Settings → Keyboard встановіть:
    Press Globe key to → Do Nothing.
@@ -27,10 +26,13 @@ GlobeSwitch — встановлення на macOS
    Input Monitoring увімкніть GlobeSwitch. Accessibility не потрібен.
    Якщо система попросить — перезапустіть GlobeSwitch.
 
-6. Перевірте перемикання ABC ↔ Ukrainian-PC у TextEdit. У меню GlobeSwitch
-   має бути статус Globe monitor: Active (switch on key-down).
+6. У меню GlobeSwitch → Input Sources in Globe Cycle позначте галочками
+   джерела, які потрібно перемикати по колу. Має залишатися щонайменше два.
 
-7. Лише після копіювання до Applications виберіть Enable Launch at Login.
+7. Перевірте цикл у TextEdit. У меню GlobeSwitch має бути статус
+   Globe monitor: Active (switch on key-down).
+
+8. Лише після копіювання до Applications виберіть Enable Launch at Login.
    LaunchAgent зберігає абсолютний шлях до застосунку.
 
 Важливо

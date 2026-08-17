@@ -1,9 +1,8 @@
 # GlobeSwitch
 
-GlobeSwitch is a personal native macOS menu-bar app that switches directly between:
-
-- `com.apple.keylayout.ABC` (`EN`)
-- `com.apple.keylayout.Ukrainian-PC` (`UA`)
+GlobeSwitch is a native macOS menu-bar app that cycles directly through the enabled
+input sources selected in its menu. It supports two or more keyboard layouts or
+input methods, including regional variants such as British English.
 
 It uses a listen-only Core Graphics event tap and calls Apple's Text Input Sources API
 synchronously on the **Globe/Fn key-down** event. There is no language HUD, animation,
@@ -15,6 +14,11 @@ mouse interaction, synthetic keyboard shortcut, shell process, or intentional de
 2. Set **Press Globe key to** to **Do Nothing**.
 3. Launch GlobeSwitch and choose **Request Keyboard Access…** from its menu-bar menu.
 4. Enable the app in the privacy pane macOS opens, then relaunch it if required.
+5. In **Input Sources in Globe Cycle**, check the sources that Globe should cycle through.
+
+At least two sources must remain selected. The selection persists across launches and
+follows the source order reported by macOS. If the current source is outside the
+selection, the next Globe press moves to the first selected source.
 
 Only **Input Monitoring** is required. Accessibility is not needed.
 
@@ -61,12 +65,12 @@ known-good installer can be restored without Xcode:
 ```text
 release/
 ├── GlobeSwitch.app
-├── GlobeSwitch-0.1.0-arm64.dmg
+├── GlobeSwitch-0.2.0-arm64.dmg
 └── SHA256SUMS.txt
 ```
 
 The DMG includes an Applications shortcut and Ukrainian installation instructions.
-It is intended for this Mac and is not Apple-notarized.
+It is intended for direct testing on Apple Silicon Macs and is not Apple-notarized.
 
 The measurements, design trade-offs, alternatives, and current verification state
 are recorded in [`INVESTIGATION_2026-08-17.md`](INVESTIGATION_2026-08-17.md).
