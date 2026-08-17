@@ -48,6 +48,12 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
 
         addDisabled("Current: \(controller.currentSource?.name ?? "Unknown")")
         addDisabled(monitorDescription)
+        addDisabled(
+            "Accessibility: \(controller.hasAccessibilityPermission ? "Granted" : "Required")"
+        )
+        addDisabled(
+            "Input Monitoring: \(controller.hasInputMonitoringPermission ? "Granted" : "Required")"
+        )
         if let milliseconds = controller.lastSwitchMilliseconds {
             addDisabled(String(format: "Last direct switch: %.3f ms", milliseconds))
         }

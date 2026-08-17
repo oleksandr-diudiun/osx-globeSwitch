@@ -40,6 +40,9 @@ swift test
 
 The staged bundle is `dist/GlobeSwitch.app`.
 
+The app icon source and packaged macOS icon are kept in `Resources/AppIcon-1024.png`
+and `Resources/AppIcon.icns`.
+
 ## Personal installer
 
 Build the Apple Silicon release app and DMG installer:

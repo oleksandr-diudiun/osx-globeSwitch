@@ -6,6 +6,10 @@
     <string>GlobeSwitch</string>
     <key>CFBundleIdentifier</key>
     <string>com.alexd.sound.GlobeSwitch</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleName</key>
     <string>GlobeSwitch</string>
     <key>CFBundlePackageType</key>

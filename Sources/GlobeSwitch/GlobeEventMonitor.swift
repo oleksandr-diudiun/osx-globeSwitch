@@ -1,6 +1,9 @@
 import ApplicationServices
+import AppKit
 import Foundation
 import GlobeSwitchCore
+
+private let systemDefinedEventType = CGEventType(rawValue: 14)!
 
 enum EventMonitorState: Equatable, Sendable {
     case stopped
@@ -13,6 +16,8 @@ final class GlobeEventMonitor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
     private var pressState = GlobePressState()
+    private var lastPermissionSnapshot: String?
+    private var didLogTapCreationFailure = false
     private let onPress: () -> Void
     private let onStateChange: (EventMonitorState) -> Void
 
@@ -31,7 +36,18 @@ final class GlobeEventMonitor {
     func start() {
         guard eventTap == nil else { return }
 
-        let mask = CGEventMask(1) << CGEventType.flagsChanged.rawValue
+        let accessibilityGranted = AXIsProcessTrusted()
+        let inputMonitoringGranted = CGPreflightListenEventAccess()
+        let permissionSnapshot =
+            "accessibility=\(accessibilityGranted), inputMonitoring=\(inputMonitoringGranted)"
+        if permissionSnapshot != lastPermissionSnapshot {
+            DiagnosticsLogger.shared.log("Starting Globe monitor; \(permissionSnapshot)")
+            lastPermissionSnapshot = permissionSnapshot
+        }
+
+        let mask =
+            (CGEventMask(1) << CGEventType.flagsChanged.rawValue) |
+            (CGEventMask(1) << systemDefinedEventType.rawValue)
         let userInfo = Unmanaged.passUnretained(self).toOpaque()
         guard let tap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -41,6 +57,13 @@ final class GlobeEventMonitor {
             callback: globeEventTapCallback,
             userInfo: userInfo
         ) else {
+            if !didLogTapCreationFailure {
+                DiagnosticsLogger.shared.log(
+                    "Globe event tap creation failed; keyboard access is required",
+                    level: .error
+                )
+                didLogTapCreationFailure = true
+            }
             onStateChange(.permissionRequired)
             return
         }
@@ -54,6 +77,8 @@ final class GlobeEventMonitor {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        didLogTapCreationFailure = false
+        DiagnosticsLogger.shared.log("Globe event tap is active")
         onStateChange(.active)
     }
 
@@ -87,22 +112,45 @@ final class GlobeEventMonitor {
             return Unmanaged.passUnretained(event)
         }
 
+        if type == systemDefinedEventType {
+            let nsEvent = NSEvent(cgEvent: event)
+            let subtype = nsEvent?.subtype.rawValue ?? -1
+            let data1 = nsEvent?.data1 ?? 0
+            let data2 = nsEvent?.data2 ?? 0
+            logAfterEventReturns(
+                "System-defined key candidate: subtype=\(subtype), data1=\(data1), data2=\(data2)"
+            )
+            return Unmanaged.passUnretained(event)
+        }
+
         guard type == .flagsChanged else {
             return Unmanaged.passUnretained(event)
         }
 
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+        let isDown = event.flags.contains(.maskSecondaryFn)
+        if keyCode == 63 || isDown {
+            logAfterEventReturns(
+                "Fn/Globe candidate: type=flagsChanged, keyCode=\(keyCode), " +
+                "secondaryFn=\(isDown), rawFlags=\(event.flags.rawValue)"
+            )
+        }
         guard keyCode == 63 else {
             return Unmanaged.passUnretained(event)
         }
 
-        let isDown = event.flags.contains(.maskSecondaryFn)
         if pressState.update(isDown: isDown) {
             // This callback is an active tap. Selecting the source before returning
             // keeps the next key event ordered after the language change.
             onPress()
         }
         return Unmanaged.passUnretained(event)
+    }
+
+    private func logAfterEventReturns(_ message: String) {
+        DispatchQueue.main.async {
+            DiagnosticsLogger.shared.log(message)
+        }
     }
 }
 

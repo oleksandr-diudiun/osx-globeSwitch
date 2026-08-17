@@ -9,6 +9,7 @@ RELEASE_DIR="$ROOT_DIR/release"
 APP_BUNDLE="$RELEASE_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
+APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$ROOT_DIR/Resources/Info.plist")"
 DMG_NAME="$APP_NAME-$VERSION-$ARCHITECTURE.dmg"
@@ -33,10 +34,11 @@ BUILD_BINARY="$(swift build -c release --arch "$ARCHITECTURE" --show-bin-path)/$
 
 rm -rf "$APP_BUNDLE"
 rm -f "$DMG_PATH" "$CHECKSUM_PATH"
-mkdir -p "$APP_MACOS" "$DMG_SOURCE"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$DMG_SOURCE"
 
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$ROOT_DIR/Resources/Info.plist" "$APP_CONTENTS/Info.plist"
+cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_RESOURCES/AppIcon.icns"
 chmod +x "$APP_BINARY"
 xattr -cr "$APP_BUNDLE"
 
