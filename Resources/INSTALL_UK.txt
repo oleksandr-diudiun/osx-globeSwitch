@@ -1,0 +1,35 @@
+GlobeSwitch — встановлення на цей Mac
+=====================================
+
+1. Перетягніть GlobeSwitch.app до папки Applications.
+
+2. Перший запуск:
+   - відкрийте Applications;
+   - натисніть GlobeSwitch правою кнопкою;
+   - виберіть Open / Відкрити;
+   - підтвердьте запуск.
+
+   Застосунок підписаний локальним ad-hoc підписом і не нотаризований Apple,
+   тому звичайний подвійний клік під час першого запуску може бути заблокований.
+
+3. Відкрийте System Settings → Keyboard і встановіть:
+   Press Globe key to → Do Nothing.
+
+4. Запустіть GlobeSwitch. У menu bar відкрийте його меню та виберіть
+   Request Keyboard Access… . Надайте доступ у панелі Privacy & Security,
+   яку відкриє macOS. Якщо система попросить — перезапустіть GlobeSwitch.
+
+5. Перевірте перемикання ABC ↔ Ukrainian-PC у TextEdit. У меню GlobeSwitch
+   має бути статус Globe monitor: Active (switch on key-down).
+
+6. Лише після копіювання до Applications виберіть Enable Launch at Login.
+   LaunchAgent зберігає абсолютний шлях до застосунку.
+
+Важливо
+-------
+
+- Поки GlobeSwitch активний, Globe/Fn працює як спеціальна клавіша мови.
+  Для системних Fn-комбінацій тимчасово виберіть Pause Globe Switching.
+- Після оновлення локально підписаної збірки macOS може попросити надати
+  keyboard access повторно.
+- Інсталятор призначений для Apple Silicon (arm64) і macOS 14 або новішої.
