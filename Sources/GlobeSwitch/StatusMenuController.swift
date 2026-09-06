@@ -4,12 +4,21 @@ import Combine
 @MainActor
 final class StatusMenuController: NSObject, NSMenuDelegate {
     private let controller: GlobeSwitchController
-    private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let statusItem: NSStatusItem
     private let menu = NSMenu()
     private var cancellables: Set<AnyCancellable> = []
 
+    private static let indicatorFont = NSFont.monospacedSystemFont(
+        ofSize: NSFont.systemFontSize,
+        weight: .regular
+    )
+    private static let indicatorWidth = ceil(
+        (":WW" as NSString).size(withAttributes: [.font: indicatorFont]).width
+    ) + 6
+
     init(controller: GlobeSwitchController) {
         self.controller = controller
+        statusItem = NSStatusBar.system.statusItem(withLength: Self.indicatorWidth)
         super.init()
         menu.delegate = self
         statusItem.menu = menu
@@ -32,15 +41,20 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private func updateStatusItem() {
         guard let button = statusItem.button else { return }
         let active = controller.monitorState == .active
-        button.image = NSImage(
-            systemSymbolName: active ? "globe" : "globe.badge.chevron.backward",
-            accessibilityDescription: "GlobeSwitch"
+        let abbreviation = controller.currentSource?.abbreviation ?? "?"
+        button.image = nil
+        button.imagePosition = .noImage
+        button.alignment = .center
+        button.attributedTitle = NSAttributedString(
+            string: ":\(abbreviation)",
+            attributes: [
+                .font: Self.indicatorFont,
+                .foregroundColor: active ? NSColor.labelColor : NSColor.secondaryLabelColor
+            ]
         )
-        button.imagePosition = .imageLeading
-        button.title = " \(controller.currentSource?.abbreviation ?? "?")"
+        button.setAccessibilityLabel("GlobeSwitch \(abbreviation)")
         button.toolTip = controller.errorText ?? monitorDescription
-        statusItem.length = NSStatusItem.variableLength
-        button.invalidateIntrinsicContentSize()
+        statusItem.length = Self.indicatorWidth
     }
 
     private func rebuildMenu() {
