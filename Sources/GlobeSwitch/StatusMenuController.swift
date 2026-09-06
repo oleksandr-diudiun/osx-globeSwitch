@@ -8,13 +8,18 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private var cancellables: Set<AnyCancellable> = []
 
-    private static let indicatorFont = NSFont.monospacedSystemFont(
+    private static let indicatorColonFont = NSFont.systemFont(
+        ofSize: NSFont.systemFontSize,
+        weight: .regular
+    )
+    private static let indicatorCodeFont = NSFont.monospacedSystemFont(
         ofSize: NSFont.systemFontSize,
         weight: .regular
     )
     private static let indicatorWidth = ceil(
-        (":WW" as NSString).size(withAttributes: [.font: indicatorFont]).width
-    ) + 6
+        (":" as NSString).size(withAttributes: [.font: indicatorColonFont]).width
+            + ("WW" as NSString).size(withAttributes: [.font: indicatorCodeFont]).width
+    ) + 2
 
     init(controller: GlobeSwitchController) {
         self.controller = controller
@@ -45,13 +50,24 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         button.image = nil
         button.imagePosition = .noImage
         button.alignment = .center
-        button.attributedTitle = NSAttributedString(
-            string: ":\(abbreviation)",
+        let color = active ? NSColor.labelColor : NSColor.secondaryLabelColor
+        let title = NSMutableAttributedString(
+            string: ":",
             attributes: [
-                .font: Self.indicatorFont,
-                .foregroundColor: active ? NSColor.labelColor : NSColor.secondaryLabelColor
+                .font: Self.indicatorColonFont,
+                .foregroundColor: color
             ]
         )
+        title.append(
+            NSAttributedString(
+                string: abbreviation,
+                attributes: [
+                    .font: Self.indicatorCodeFont,
+                    .foregroundColor: color
+                ]
+            )
+        )
+        button.attributedTitle = title
         button.setAccessibilityLabel("GlobeSwitch \(abbreviation)")
         button.toolTip = controller.errorText ?? monitorDescription
         statusItem.length = Self.indicatorWidth
