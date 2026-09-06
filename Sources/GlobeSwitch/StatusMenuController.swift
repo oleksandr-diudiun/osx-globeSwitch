@@ -8,9 +8,9 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private var cancellables: Set<AnyCancellable> = []
 
-    private static let indicatorFont = NSFont.monospacedSystemFont(
+    private static let indicatorFont = NSFont.systemFont(
         ofSize: NSFont.systemFontSize,
-        weight: .regular
+        weight: .medium
     )
     private static let indicatorWidth = ceil(
         (":WW" as NSString).size(withAttributes: [.font: indicatorFont]).width
@@ -44,15 +44,10 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         let abbreviation = controller.currentSource?.abbreviation ?? "?"
         button.image = nil
         button.imagePosition = .noImage
-        button.alignment = .center
-        let color = active ? NSColor.labelColor : NSColor.secondaryLabelColor
-        button.attributedTitle = NSAttributedString(
-            string: ":\(abbreviation)",
-            attributes: [
-                .font: Self.indicatorFont,
-                .foregroundColor: color
-            ]
-        )
+        button.alignment = .left
+        button.font = Self.indicatorFont
+        button.title = ":\(abbreviation)"
+        button.alphaValue = active ? 1 : 0.65
         button.setAccessibilityLabel("GlobeSwitch \(abbreviation)")
         button.toolTip = controller.errorText ?? monitorDescription
         statusItem.length = Self.indicatorWidth
