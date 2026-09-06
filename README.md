@@ -7,9 +7,10 @@ input methods, including regional variants such as British English.
 It uses a listen-only Core Graphics event tap and calls Apple's Text Input Sources API
 synchronously on the **Globe/Fn key-down** event. There is no language HUD, animation,
 mouse interaction, synthetic keyboard shortcut, shell process, or intentional delay.
-The menu-bar indicator is a compact fixed-width system-font label such as `:EN` or
-`:UA`. It uses the native menu-bar color, medium weight, left alignment, and no added
-side margins. The fixed item width prevents adjacent status items from moving.
+The menu-bar indicator uses the same 22-by-16-point dynamic input-source image that
+macOS generates for its own Input menu, such as `A` or `УК`. The image is loaded at
+runtime and cached; if the private system renderer is unavailable after a macOS
+update, GlobeSwitch falls back to the compact fixed-width `:EN`/`:UA` label.
 
 ## Required macOS setup
 
@@ -68,7 +69,7 @@ known-good installer can be restored without Xcode:
 ```text
 release/
 ├── GlobeSwitch.app
-├── GlobeSwitch-0.2.4-arm64.dmg
+├── GlobeSwitch-0.2.5-arm64.dmg
 └── SHA256SUMS.txt
 ```
 

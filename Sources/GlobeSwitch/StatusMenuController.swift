@@ -6,6 +6,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let controller: GlobeSwitchController
     private let statusItem: NSStatusItem
     private let menu = NSMenu()
+    private let iconProvider = SystemInputSourceIconProvider()
     private var cancellables: Set<AnyCancellable> = []
 
     private static let indicatorFont = NSFont.systemFont(
@@ -15,6 +16,7 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private static let indicatorWidth = ceil(
         (":WW" as NSString).size(withAttributes: [.font: indicatorFont]).width
     )
+    private static let systemIconWidth: CGFloat = 22
 
     init(controller: GlobeSwitchController) {
         self.controller = controller
@@ -42,15 +44,26 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         let active = controller.monitorState == .active
         let abbreviation = controller.currentSource?.abbreviation ?? "?"
-        button.image = nil
-        button.imagePosition = .noImage
-        button.alignment = .left
-        button.font = Self.indicatorFont
-        button.title = ":\(abbreviation)"
+
+        if let source = controller.currentSource,
+           let image = iconProvider.image(for: source.id) {
+            button.image = image
+            button.imagePosition = .imageOnly
+            button.imageScaling = .scaleProportionallyDown
+            button.alignment = .center
+            button.title = ""
+            statusItem.length = Self.systemIconWidth
+        } else {
+            button.image = nil
+            button.imagePosition = .noImage
+            button.alignment = .left
+            button.font = Self.indicatorFont
+            button.title = ":\(abbreviation)"
+            statusItem.length = Self.indicatorWidth
+        }
         button.alphaValue = active ? 1 : 0.65
         button.setAccessibilityLabel("GlobeSwitch \(abbreviation)")
         button.toolTip = controller.errorText ?? monitorDescription
-        statusItem.length = Self.indicatorWidth
     }
 
     private func rebuildMenu() {
