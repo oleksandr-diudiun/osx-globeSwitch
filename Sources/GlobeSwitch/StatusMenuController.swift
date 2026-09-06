@@ -8,18 +8,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private var cancellables: Set<AnyCancellable> = []
 
-    private static let indicatorColonFont = NSFont.systemFont(
-        ofSize: NSFont.systemFontSize,
-        weight: .regular
-    )
-    private static let indicatorCodeFont = NSFont.monospacedSystemFont(
+    private static let indicatorFont = NSFont.monospacedSystemFont(
         ofSize: NSFont.systemFontSize,
         weight: .regular
     )
     private static let indicatorWidth = ceil(
-        (":" as NSString).size(withAttributes: [.font: indicatorColonFont]).width
-            + ("WW" as NSString).size(withAttributes: [.font: indicatorCodeFont]).width
-    ) + 2
+        (":WW" as NSString).size(withAttributes: [.font: indicatorFont]).width
+    )
 
     init(controller: GlobeSwitchController) {
         self.controller = controller
@@ -51,23 +46,13 @@ final class StatusMenuController: NSObject, NSMenuDelegate {
         button.imagePosition = .noImage
         button.alignment = .center
         let color = active ? NSColor.labelColor : NSColor.secondaryLabelColor
-        let title = NSMutableAttributedString(
-            string: ":",
+        button.attributedTitle = NSAttributedString(
+            string: ":\(abbreviation)",
             attributes: [
-                .font: Self.indicatorColonFont,
+                .font: Self.indicatorFont,
                 .foregroundColor: color
             ]
         )
-        title.append(
-            NSAttributedString(
-                string: abbreviation,
-                attributes: [
-                    .font: Self.indicatorCodeFont,
-                    .foregroundColor: color
-                ]
-            )
-        )
-        button.attributedTitle = title
         button.setAccessibilityLabel("GlobeSwitch \(abbreviation)")
         button.toolTip = controller.errorText ?? monitorDescription
         statusItem.length = Self.indicatorWidth
