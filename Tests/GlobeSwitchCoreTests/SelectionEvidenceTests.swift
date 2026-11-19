@@ -37,3 +37,18 @@ import Testing
     #expect(conflicting.text == text)
     #expect(conflicting.range == nil)
 }
+
+@Test func verifiesUniqueSelectionWithoutNumericRange() {
+    #expect(expectedPasteValue(before: "🙂 ghbdsn!", selected: "ghbdsn", replacement: "привіт",
+                               range: nil) == "🙂 привіт!")
+    #expect(expectedPasteValue(before: "🙂 ghbdsn!", selected: "ghbdsn", replacement: "привіт",
+                               range: NSRange(location: 1, length: 6)) == "🙂 привіт!")
+}
+
+@Test func repeatedSelectionRequiresMatchingPosition() {
+    #expect(expectedPasteValue(before: "aaa", selected: "aa", replacement: "фф", range: nil) == nil)
+    #expect(expectedPasteValue(before: "aaa", selected: "aa", replacement: "фф",
+                               range: NSRange(location: 1, length: 2)) == "aфф")
+    #expect(expectedPasteValue(before: "abc", selected: "xyz", replacement: "чня",
+                               range: NSRange(location: 0, length: 3)) == nil)
+}

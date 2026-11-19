@@ -175,13 +175,19 @@ final class SelectedTextCorrection {
                 guard stillSelected(selection) else { throw failure("The selected field changed before replacement.") }
                 if result.text != original {
                     let beforeValue = attribute(selection.element, kAXValueAttribute) as? String
-                    let expectedValue: String? = {
-                        guard let beforeValue, let range = selection.range,
-                              range.location >= 0, range.length >= 0,
-                              range.location + range.length <= (beforeValue as NSString).length else { return nil }
-                        return (beforeValue as NSString).replacingCharacters(in:
-                            NSRange(location: range.location, length: range.length), with: result.text)
-                    }()
+                    let expectedValue = beforeValue.flatMap {
+                        expectedPasteValue(before: $0, selected: original, replacement: result.text,
+                                           range: selection.range.map { NSRange(location: $0.location, length: $0.length) })
+                    }
+                    // WebKit compose fields can expose document markers while AXValue
+                    // is empty. Anchor the expected result to the selection's position.
+                    var expectedPrefix: String?
+                    if expectedValue == nil, selection.range == nil,
+                       let marker = selection.markerRange,
+                       let prefix = prefixThroughMarkerRange(selection.element, marker),
+                       prefix.utf16.suffix(original.utf16.count).elementsEqual(original.utf16) {
+                        expectedPrefix = (prefix as NSString).substring(to: prefix.utf16.count - original.utf16.count) + result.text
+                    }
                     // Use the host's normal Paste operation, preserving its undo stack.
                     // Plain text replaces only the selection; no Return/submit is sent.
                     board.clearContents()
@@ -199,7 +205,12 @@ final class SelectedTextCorrection {
                                 verified = true
                                 break
                             }
-                        } else if let originalRange = selection.range,
+                        } else if let expectedPrefix,
+                                  let marker = attribute(selection.element, "AXSelectedTextMarkerRange"),
+                                  prefixThroughMarkerRange(selection.element, marker) == expectedPrefix {
+                            verified = true
+                            break
+                        } else if beforeValue == nil, let originalRange = selection.range,
                                   let range = selectedRange(selection.element), range.length == 0,
                                   range.location == originalRange.location + result.text.utf16.count {
                             verified = true
@@ -209,6 +220,9 @@ final class SelectedTextCorrection {
                     if !verified {
                         // A custom control may accept Paste but expose no readable
                         // value. Do not paste twice or claim verified completion.
+                        let app = selection.application.bundleIdentifier ?? "unknown"
+                        let role = attribute(selection.element, kAXRoleAttribute) as? String ?? "unknown"
+                        DiagnosticsLogger.shared.log("Paste verification unavailable app=\(app) role=\(role) value=\(beforeValue != nil) range=\(selection.range != nil) marker=\(selection.markerRange != nil) expectedValue=\(expectedValue != nil)")
                         throw failure("Could not verify replacement in this field. Check the text; the layout was not changed.")
                     }
                 }
@@ -226,6 +240,21 @@ final class SelectedTextCorrection {
                 NSSound.beep()
             }
         }
+    }
+
+    /// Reads through the end of the selection (or caret after Paste).
+    /// Reacquire document markers after editing because WebKit can replace DOM nodes.
+    private func prefixThroughMarkerRange(_ element: AXUIElement, _ rawRange: CFTypeRef) -> String? {
+        guard CFGetTypeID(rawRange) == AXTextMarkerRangeGetTypeID(),
+              let start = attribute(element, "AXStartTextMarker"),
+              CFGetTypeID(start) == AXTextMarkerGetTypeID() else { return nil }
+        let selected = unsafeDowncast(rawRange, to: AXTextMarkerRange.self)
+        let range = AXTextMarkerRangeCreate(nil, unsafeDowncast(start, to: AXTextMarker.self),
+                                            AXTextMarkerRangeCopyEndMarker(selected))
+        var value: CFTypeRef?
+        guard AXUIElementCopyParameterizedAttributeValue(element, "AXStringForTextMarkerRange" as CFString,
+                                                         range, &value) == .success else { return nil }
+        return value as? String
     }
 
     private func sameFocusedField(_ selection: SelectedTextTarget) -> Bool {

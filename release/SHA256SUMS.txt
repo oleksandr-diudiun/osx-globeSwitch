@@ -1,2 +1,2 @@
-ec8ad7a030c70ad38a1ec32c7807f0cede8a3515229a49a141fd5becef95e90a  GlobeSwitch-0.3.2-arm64.dmg
-69026f263efc016b06c90af1be4c0ac5e6095327c6431e82ef1c063842024714  GlobeSwitch.app/Contents/MacOS/GlobeSwitch
+207648ff189f3794d576b86ba031a577feb2ba132c25797ab02e08e20710334f  GlobeSwitch-0.3.4-arm64.dmg
+b31b6668b8006dc679edc92540efc63031b256eae26bcb8334c5f4d07974887d  GlobeSwitch.app/Contents/MacOS/GlobeSwitch

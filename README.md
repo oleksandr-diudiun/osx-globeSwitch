@@ -147,7 +147,7 @@ known-good installer can be restored without Xcode:
 ```text
 release/
 ├── GlobeSwitch.app
-├── GlobeSwitch-0.3.2-arm64.dmg
+├── GlobeSwitch-0.3.4-arm64.dmg
 └── SHA256SUMS.txt
 ```
 
